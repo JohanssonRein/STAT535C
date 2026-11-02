@@ -11,6 +11,7 @@ To investigate the rental price price $y_i$, it is usually common to model the l
 $$
 \log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \omega(\vec s_i) + \gamma(\vec s_i),
 $$
+
 where
 
 * The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the fixed effect in our model, which is a linear regression with covariates independent of the location. For example, we may consider the number of bedrooms, the number of bathrooms, the apartment type, etc.
