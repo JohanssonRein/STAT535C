@@ -16,7 +16,9 @@ where
 
 * The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the fixed effect in our model, which is a linear regression with covariates independent of the location. For example, we may consider the number of bedrooms, the number of bathrooms, the apartment type, etc.
 * The second term $\omega(\vec s_i)$ is a Gaussian process with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. It has $2$ parameters: $\phi, \sigma^2$.
-* The third term $\epsilon(\vec s_i)$ is called follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the nugget, and we may think of it as the i.i.d error in our model.
+* The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the nugget, and we may think of it as the i.i.d error in our model.
+
+
 
 # Models
 
