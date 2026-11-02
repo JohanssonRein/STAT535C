@@ -4,7 +4,7 @@ The purpose of this project is to build up a model that predicts the housing pri
 
 <figure style="width: 400px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
-    src="Average rental price in Alberta.png" 
+    src="figures/Average rental price in Alberta.png" 
     alt="" 
     style="width: 400px; height: 600px; object-fit: cover; border-radius: 50%;"
   >
