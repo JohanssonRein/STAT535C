@@ -2,11 +2,11 @@
 
 The purpose of this project is to build up a model that predicts the housing price in rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations ($13777$ observations).
 
-<figure style="width: 400px; max-width: 100%; margin: 1.5em auto; text-align: center;">
+<figure style="width: 650px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
     src="figures/Average rental price in Alberta.png" 
     alt="" 
-    style="width: 400px; height: 600px; object-fit: cover; border-radius: 50%;"
+    style="width: 650px; height: 650px; object-fit: cover; border-radius: 50%;"
   >
   <figcaption style="font-size: 0.95em; margin-top: 0.5em;">
     <em></em>
