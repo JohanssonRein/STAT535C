@@ -38,6 +38,10 @@ and we can proceed with MCMC methods. My older version invokes [HMC](https://arx
 
 * Optimization approach: We can impose optimization methods directly on the joint distribution. There are many common methods: Like covariance tapering, NNGP, HSGP. [This paper](https://arxiv.org/abs/1710.05013) includes many interesting methods which we can use.
 
+# Further Reading
+
+To get a more comprehensive idea of spatial modeling, please see [my report](https://www.math.mcgill.ca/gsams/drp/papers/papers2026/Report8.pdf) or refer to the [textbook](https://www.taylorfrancis.com/books/mono/10.1201/9781003401728/hierarchical-modeling-analysis-spatial-data-sudipto-banerjee-alan-gelfand-bradley-carlin).
+
 
 
 
