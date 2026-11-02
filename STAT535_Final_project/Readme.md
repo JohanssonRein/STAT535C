@@ -2,6 +2,17 @@
 
 The purpose of this project is to build up a model that predicts the housing price in rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations ($13777$ observations).
 
+<figure style="width: 400px; max-width: 100%; margin: 1.5em auto; text-align: center;">
+  <img 
+    src="/figures/Average rental price in Alberta.png" 
+    alt="Gundam" 
+    style="width: 400px; height: 600px; object-fit: cover; border-radius: 50%;"
+  >
+  <figcaption style="font-size: 0.95em; margin-top: 0.5em;">
+    <em></em>
+  </figcaption>
+</figure>
+
 # Methods
 
 We will be working with spatial data, which means the observations are not necessarily independent. Think about the rainfall data: The rainfall collected at UBC and downtown Vancouver may not be independent because they are geographically close to each other. However, we may assume the rainfall collected at UBC and at UofT have very small correlations. 
