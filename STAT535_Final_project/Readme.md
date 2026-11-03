@@ -1,6 +1,6 @@
 # Introduction
 
-The purpose of this project is to build up a model that predicts the housing price in rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations. The dataset we will be using is available [here](rentfaster.csv) The following figure shows the average rental price in each municipality of Alberta.
+The purpose of this project is to build up a model that predicts the housing price in the rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations. The dataset we will be using is available [here](rentfaster.csv). The following figure shows the average rental price in each municipality of Alberta.
 
 <figure style="width: 700px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
@@ -13,29 +13,33 @@ The purpose of this project is to build up a model that predicts the housing pri
   </figcaption>
 </figure>
 
-From the plot we can actually see that Calgary and Edmonton metropolis take up most of our observations, where many municipalities has no or few observations. Hence for this project we may want to focus on the city of Calgary and Edmonton only.
+From the plot we can actually see that Calgary and Edmonton metropolis take up most of our observations, where many municipalities has no or few observations, and that could be an potential issue, where a few extreme observations would greatly impact the average rental price. Hence for this project we may want to focus on the city of Calgary and Edmonton only. Also, we may train our model based on Calgary data and predict the rental price in Edmonton.
 
-# Methods
+# Model
 
 We will be working with spatial data, which means the observations are not necessarily independent. Think about the rainfall data: The rainfall collected at UBC and downtown Vancouver may not be independent because they are geographically close to each other. However, we may assume the rainfall collected at UBC and at UofT have very small correlations. 
 
 To investigate the rental price $y_i$, it is usually common to model the log-observed-price $\log(y_i)$. Suppose we have observations $(\vec x_1(s_1),y_1),\cdots,(\vec x_n(s_n),y_n)$, where $\vec x_i(s_i)$ is the $i$th observation with its spatial location vector $\vec s_i$. The model we use is given by
 
 $$
-\log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \omega(\vec s_i) + \epsilon(\vec s_i),
+\log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \vec\omega(\vec s_i) + \epsilon(\vec s_i),
 $$
 
 or
 
 $$
-\log(\vec Y_i)=\vec X(\vec s)\vec\beta + \omega(\vec s)+\vec \epsilon(\vec s)
+\log(\vec Y_i)=\vec X(\vec s)\vec\beta + \vec\omega(\vec s)+\vec \epsilon(\vec s)
 $$
 
-where
+where the above three terms are defined as follow:
 
-* The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the **fixed effect** in our model, which is a linear regression term with covariates independent from its spatial location. For example, those covariates may include the number of bedrooms, the number of bathrooms, the apartment type, etc.
+### Fixed Effect
 
-* The second term $\omega(\vec s_i)$ is a **Gaussian process** with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. The covariance function of $\omega(\vec s)$ is monotonically decreasing, modelling the idea that the further the distance, the less the spatial location. It has many parameters:  $d=||\vec s-\vec s'||$ define the spatial distance; $\phi$ is the spatial decay parameter, called **range**,  which describes the spatial dependency strength; and finally $\sigma^2$ is called **sill**, which measures how much the variogram (which is, $\text{Var}(\omega(\vec s+\vec h)-\omega(\vec s))$ for a spatial site $\vec s$ and distance vector $\vec h$) has increased after reaching stable.
+The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the **fixed effect** in our model, which is a linear regression term with covariates independent from its spatial location. For example, those covariates may include the number of bedrooms, the number of bathrooms, the apartment type, etc.
+
+
+### Spatial Gaussian Processes (SGP)
+The second term $\omega(\vec s_i)$ is a **Gaussian process** with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. The covariance function of $\omega(\vec s)$ is monotonically decreasing, modelling the idea that the further the distance, the less the spatial location. It has many parameters:  $d=\Vert\vec s-\vec s'\Vert$ define the spatial distance; $\phi$ is the spatial decay parameter, called **range**,  which describes the spatial dependency strength; and finally $\sigma^2$ is called **sill**, which measures how much the variogram (which is, $\text{Var}(\omega(\vec s+\vec h)-\omega(\vec s))$ for a spatial site $\vec s$ and distance vector $\vec h$) has increased after reaching stable.
 The popular choice of the covariance function is the Matérn model: For two spatial locations $\vec s,\vec s'$, 
 
 $$
@@ -45,14 +49,22 @@ $$
 \end{cases}.
 $$
 
-where $K_\nu$, $\nu$ are pre-chosen.
+where $K_\nu$, $\nu$ are pre-chosen. 
 
- 
-* The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the **nugget**, and we may think of it as the i.i.d error in our model.
+In practice, we will use the empirical variogram given by
+
+$$
+\hat{\gamma}(d) = \frac{1}{2N(d)} \sum_{(\vec s_i,\vec s_j) \in N(d)} | Y(\vec s_i) - Y(\vec s_j)|^2
+$$
+
+where $N(d)$ is the set of spatial observations such that $\Vert \vec s_i - \vec s_j \Vert = d$. We often plot the empirical variogram first, and then choose proper $K_\nu$, $\nu$ mentioned before as a parametric estimate.
+
+### Nugget
+The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the **nugget**, and we may think of it as the i.i.d error in our model.
 
 
 
-# Models
+# Methods
 
 Once we have all the set up, the observed-log-price follows the following distribution:
 
