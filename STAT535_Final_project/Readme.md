@@ -1,6 +1,6 @@
 # Introduction
 
-The purpose of this project is to build up a model that predicts the housing price in rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations ($13777$ observations).
+The purpose of this project is to build up a model that predicts the housing price in rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations. The dataset we will be using is available [here](rentfaster.csv) The following figure shows the average rental price in each municipality of Alberta.
 
 <figure style="width: 700px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
@@ -13,21 +13,42 @@ The purpose of this project is to build up a model that predicts the housing pri
   </figcaption>
 </figure>
 
+From the plot we can actually see that Calgary and Edmonton metropolis take up most of our observations, where many municipalities has no or few observations. Hence for this project we may want to focus on the city of Calgary and Edmonton only.
+
 # Methods
 
 We will be working with spatial data, which means the observations are not necessarily independent. Think about the rainfall data: The rainfall collected at UBC and downtown Vancouver may not be independent because they are geographically close to each other. However, we may assume the rainfall collected at UBC and at UofT have very small correlations. 
 
-To investigate the rental price price $y_i$, it is usually common to model the log-observed-price $\log(y_i)$. Suppose we have observations $(\vec x_1(s),y_1),\cdots,(\vec x_n(s),y_n)$, where $\vec x_i(s_i)$ is one observation with its spatial location vector $\vec s_i$. The model we use is given by
+To investigate the rental price $y_i$, it is usually common to model the log-observed-price $\log(y_i)$. Suppose we have observations $(\vec x_1(s_1),y_1),\cdots,(\vec x_n(s_n),y_n)$, where $\vec x_i(s_i)$ is the $i$th observation with its spatial location vector $\vec s_i$. The model we use is given by
 
 $$
-\log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \omega(\vec s_i) + \gamma(\vec s_i),
+\log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \omega(\vec s_i) + \epsilon(\vec s_i),
+$$
+
+or
+
+$$
+\log(\vec Y_i)=\vec X(\vec s)\vec\beta + \omega(\vec s)+\vec \epsilon(\vec s)
 $$
 
 where
 
-* The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the fixed effect in our model, which is a linear regression with covariates independent of the location. For example, we may consider the number of bedrooms, the number of bathrooms, the apartment type, etc.
-* The second term $\omega(\vec s_i)$ is a Gaussian process with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. It has $2$ parameters: $\phi, \sigma^2$.
-* The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the nugget, and we may think of it as the i.i.d error in our model.
+* The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the **fixed effect** in our model, which is a linear regression term with covariates independent from its spatial location. For example, those covariates may include the number of bedrooms, the number of bathrooms, the apartment type, etc.
+
+* The second term $\omega(\vec s_i)$ is a **Gaussian process** with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. The covariance function of $\omega(\vec s)$ is monotonically decreasing, modelling the idea that the further the distance, the less the spatial location. It has many parameters:  $d=||\vec s-\vec s'||$ define the spatial distance; $\phi$ is the spatial decay parameter, called **range**,  which describes the spatial dependency strength; and finally $\sigma^2$ is called **sill**, which measures how much the variogram (which is, $\text{Var}(\omega(\vec s+\vec h)-\omega(\vec s))$ for a spatial site $\vec s$ and distance vector $\vec h$) has increased after reaching stable.
+The popular choice of the covariance function is the Matérn model: For two spatial locations $\vec s,\vec s'$, 
+
+$$
+\text{Cov}(w(\vec s),w(\vec s')) = \begin{cases}
+\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\phi d)^\nu K_\nu(\phi d) & \text{if $d>0$} \\
+\sigma^2 & \text{if $d=0$}
+\end{cases}.
+$$
+
+where $K_\nu$, $\nu$ are pre-chosen.
+
+ 
+* The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the **nugget**, and we may think of it as the i.i.d error in our model.
 
 
 
@@ -47,9 +68,10 @@ $$
 p(\vec\theta|\vec y) \propto p(\vec y|\vec\theta) \pi(\vec\beta)\pi(\sigma^2)\pi(\phi)\pi(\tau^2),
 $$
 
-and we can proceed with MCMC methods. My older version invokes [HMC](https://arxiv.org/pdf/1701.02434) (Hamiltonian Monte Carlo), and we can try some other methods. For example [INLA](https://arxiv.org/abs/1604.00860)
+and we can proceed with MCMC methods. My older version invokes [HMC](https://arxiv.org/pdf/1701.02434) (Hamiltonian Monte Carlo), and we can try some other methods. For example: [SPDE-INLA](https://arxiv.org/abs/1604.00860), which uses stochastic partial differential equations (SPDEs); [NNGP](https://arxiv.org/abs/1406.7343) (Nearest Neighbor Gaussian Process); [HSGP](https://arxiv.org/pdf/2004.11408) (Hilbert Space Gaussian Process), which approximate the covariance matrix by eigenfunctions of the negative Laplacian ($-\Delta$), and many other methods. [This paper](https://arxiv.org/abs/1710.05013) has many other interesting methods.
 
-* Optimization approach: We can impose optimization methods directly on the joint distribution. There are many common methods: Like covariance tapering, NNGP, HSGP. [This paper](https://arxiv.org/abs/1710.05013) includes many interesting methods which we can use.
+* Frequentist approach: We can impose optimization methods directly on the joint distribution. There are many common methods: Covariance Tapering (which takes advantage of the sparsity structure of the matrix); Fixed rank kriging, and so on.
+[This paper (the same one as above)](https://arxiv.org/abs/1710.05013) includes many interesting methods which we can use, as well.
 
 # Further Reading
 
