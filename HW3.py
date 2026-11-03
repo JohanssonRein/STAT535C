@@ -18,14 +18,14 @@ epsilon = 0.1
 def f(z):
     return multivariate_normal.pdf(z,mean=mean, cov=cov) 
 
-def MH(z,n=10000):
+def MH(z, eps, n=10000):
     samples = np.zeros((n + 1, 2)) #Create a 2 column array with 0 everywhere, so it will store our estimates
     samples[0]=z
     
     samples_mean = np.zeros((n + 1, 2))
     samples_mean[0] = z
     for i in range(n):
-        z_new = multivariate_normal.rvs(mean=z,cov=epsilon * Id)
+        z_new = multivariate_normal.rvs(mean=z,cov=eps * Id)
         alpha = min(1,f(z_new)/f(z) )
         u = np.random.uniform(0,1)
         if u <= alpha:
@@ -35,7 +35,7 @@ def MH(z,n=10000):
         
     return samples, samples_mean
 
-samples, samples_mean = MH(z=[5,5],n=10000)
+samples, samples_mean = MH(z=[5,5],n=10000,eps=0.1)
 
 squared_error = np.sum((mean-samples_mean)**2,axis=1)
 
@@ -52,8 +52,35 @@ plt.grid(alpha=0.3)
 plt.show()
 
 
-        
-# print(MH([5,5],n=10000))  
+# 5(b)
+
+eps_list = [0.2,0.5,1,2,5]
+
+for i in range(len(eps_list)):
+    samples,samples_mean = MH(z=[5,5],eps=eps_list[i],n=10000)
+    
+    squared_error = squared_error = np.sum((mean-samples_mean)**2,axis=1)
+    
+    iterations = np.arange(len(squared_error))
+
+    plt.plot(iterations[1:], np.log(squared_error[1:]),label=f"$\\epsilon$ = {eps_list[i]}")
+
+plt.xlabel("Number of iterations")
+plt.ylabel("Log-squared Error")
+plt.title("")
+plt.legend()
+plt.grid(alpha=0.3)
+plt.show()
+
+
+    
+
+
+
+
+    
+
+
         
         
         
