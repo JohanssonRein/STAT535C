@@ -2,24 +2,17 @@
 
 The purpose of this project is to build up a model that predicts the housing price in the rental market. In this particular project, we are interested in the rental market in the province of Alberta, partially because it has the most number of observations. The dataset we will be using is available [here](rentfaster.csv). The following figure shows the average rental price in each municipality of Alberta.
 
-<figure style="width: 700px; max-width: 100%; margin: 1.5em auto; text-align: center;">
-  <img 
-    src="figures/Average rental price in Alberta.png" 
-    alt="" 
-    style="width: 700px; height: 650px; object-fit: cover; border-radius: 50%;"
-  >
-  <figcaption style="font-size: 0.95em; margin-top: 0.5em;">
-    <em></em>
-  </figcaption>
-</figure>
 
-From the plot we can actually see that Calgary and Edmonton metropolis take up most of our observations, where many municipalities has no or few observations, and that could be an potential issue, where a few extreme observations would greatly impact the average rental price. Hence for this project we may want to focus on the city of Calgary and Edmonton only. Also, we may train our model based on Calgary data and predict the rental price in Edmonton.
+For this project we may want to focus on the city of Calgary and Edmonton only, since $95\%$ of our observations are concentrated within that area and many counties do not have enough observations. Also, we may train our model based on Calgary data and predict the rental price in Edmonton (if their variograms are similar).
+
+
+This rental data is the one I have in mind at this moment, if we have some other interesting spatial dataset, we can definitely work on them. However I would prefer we use housing/rental data (not necessary in Alberta, big cities like New York, London, will also work), since modelling other types require a re-evaluation of the model and hence contribute to more workload. [This book](https://www.taylorfrancis.com/books/mono/10.1201/9781003401728/hierarchical-modeling-analysis-spatial-data-sudipto-banerjee-alan-gelfand-bradley-carlin) provides detailed modelling of different types of spatial data, you may take a look if you are interested in them (for example, forest fire).
 
 # Model
 
 We will be working with spatial data, which means the observations are not necessarily independent. Think about the rainfall data: The rainfall collected at UBC and downtown Vancouver may not be independent because they are geographically close to each other. However, we may assume the rainfall collected at UBC and at UofT have very small correlations. 
 
-To investigate the rental price $y_i$, it is usually common to model the log-observed-price $\log(y_i)$. Suppose we have observations $(\vec x_1(s_1),y_1),\cdots,(\vec x_n(s_n),y_n)$, where $\vec x_i(s_i)$ is the $i$th observation with its spatial location vector $\vec s_i$. The model we use is given by
+To investigate the rental price $y_i$, it is usually common to model the log-observed-price $\log(y_i)$. Suppose we have observations $(\vec x_1(s_1),y_1),\cdots,(\vec x_n(s_n),y_n)$, where $\vec x_i(s_i)$ is the $i$ th observation with its spatial location vector $\vec s_i$. The model we use is given by
 
 $$
 \log(y_i) = \vec x_i(\vec s_i)^\top\vec\beta + \vec\omega(\vec s_i) + \epsilon(\vec s_i),
@@ -35,33 +28,47 @@ where the above three terms are defined as follow:
 
 ### Fixed Effect
 
-The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the **fixed effect** in our model, which is a linear regression term with covariates independent from its spatial location. For example, those covariates may include the number of bedrooms, the number of bathrooms, the apartment type, etc.
+The first term $\vec x_i(\vec s_i)^\top\vec\beta$ is the **fixed effect** in our model, which is a linear regression term with covariates independent from its spatial location. For example, those covariates may include the number of bedrooms, the number of bathrooms, the apartment type, etc. In our dataset, we have $10$ spatial-independent covariates in total. 
 
 
 ### Spatial Gaussian Processes (SGP)
-The second term $\omega(\vec s_i)$ is a **Gaussian process** with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. The covariance function of $\omega(\vec s)$ is monotonically decreasing, modelling the idea that the further the distance, the less the spatial location. It has many parameters:  $d=\Vert\vec s-\vec s'\Vert$ define the spatial distance; $\phi$ is the spatial decay parameter, called **range**,  which describes the spatial dependency strength; and finally $\sigma^2$ is called **sill**, which measures how much the variogram (which is, $\text{Var}(\omega(\vec s+\vec h)-\omega(\vec s))$ for a spatial site $\vec s$ and distance vector $\vec h$) has increased after reaching stable.
-The popular choice of the covariance function is the Matérn model: For two spatial locations $\vec s,\vec s'$, 
+The second term $\omega(\vec s_i)$ is a **Gaussian process** with mean zero, i.e $\omega(\vec s_i) \sim N(\vec 0, \vec\Sigma)$. Its goal is to capture the spatial dependency which cannot be explained by the linear predictor term. The matrix $\vec\Sigma$ is an $n\times n$ variance-covariance matrix, with its entries defined as the spatial dependency between any two observations. The covariance function of $\omega(\vec s)$ is monotonically decreasing, modelling the idea that the further the distance, the less the spatial location. We will assume the Gaussian process is *isotropic*, i.e, the spatial correlation between two points $\vec s, \vec s'$ depends only on their euclidean distance $d = \Vert \vec s - \vec s' \Vert$, also $E[\vec\omega(\vec s)]=E[\vec\omega(\vec s+\vec h)]$ where $\vec h = \vec s - \vec s'$. With covariance function defined, the **variogram** (denote as $\gamma(\vec h)$ as a function of spatial distance) is defined as
 
 $$
-\text{Cov}(w(\vec s),w(\vec s')) = \begin{cases}
-\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)} (\phi d)^\nu K_\nu(\phi d) & \text{if $d>0$} \\
-\sigma^2 & \text{if $d=0$}
-\end{cases}.
+\gamma(d) = \frac{1}{2}Var(\vec\omega(\vec s+\vec h) - \vec w(\vec s)).
 $$
 
-where $K_\nu$, $\nu$ are pre-chosen. 
-
-In practice, we will use the empirical variogram given by
+Theoretically, the variogram increases within a certain range; Behaviorally, we would expect similar values of $E[\vec\omega(\vec s)]$ and $E[\vec\omega(\vec s+\vec h)]$ at short distance. When $\Vert \vec h \Vert$ gets large the similarity decreases resulting in a larger variogram. When $\Vert \vec h \Vert$ is large enough so that the spatial dependency is allmost negligible, the variogram will stay stable at a certain threshold. A variogram is modeled by $3$ parameters: Range $\phi$, sill $\sigma^2$ and nugget $\tau^2$. A common choice of the variogram is the Matérn variogram:
 
 $$
-\hat{\gamma}(d) = \frac{1}{2N(d)} \sum_{(\vec s_i,\vec s_j) \in N(d)} | Y(\vec s_i) - Y(\vec s_j)|^2
+\gamma(d) = \begin{cases}  \sigma^2 \left[ 1- \frac{(2\sqrt{\nu} d \phi)^{\nu}}{2^{\nu-1} \Gamma(\nu)} K_{\nu}(2\sqrt{\nu} d \phi) \right] +\tau^2& \text{if $d>0$} \\ 0 & \text{if $d=0$}\end{cases},
 $$
 
-where $N(d)$ is the set of spatial observations such that $\Vert \vec s_i - \vec s_j \Vert = d$. We often plot the empirical variogram first, and then choose proper $K_\nu$, $\nu$ mentioned before as a parametric estimate.
+where $d=\Vert h \Vert$, and $K_\nu$ is the modified Bessel function of order $\nu$, and $\nu$ is the smoothing parameter of our choice. The empirical variogram is given by
 
-### Nugget
-The third term $\epsilon(\vec s_i)$ follows a normal distribution $N(0,\tau^2)$, and is independent of both the linear predictor and the Gaussian process. The parameter $\tau^2$ is called the **nugget**, and we may think of it as the i.i.d error in our model.
+$$
+\hat{\gamma}(d) = \frac{1}{2N(\vec d)} \sum_{(\vec s_i,\vec s_j)\in N(d)} | y(\vec s_i)-y(\vec s_j)|^2,
+$$
 
+where $N(d)$ is the set of pairs such that $\Vert\vec s_i - \vec s_j \Vert=d$. 
+
+Apart from variogram, we also define the **covariogram** (denote as $C(\vec h)$ ) as the covariance between two spatial sites. In fact
+
+$$
+C(\vec h) = \lim_{\Vert \vec u \Vert \to \infty} \gamma(\vec u)-\gamma(\vec h),
+$$
+
+and using Matérn model, the covariogram becomes
+
+$$
+C(d) = \begin{cases} 
+	\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)}(\phi d)^\nu K_\nu(\phi d) & \text{if $d>0$} \\ \sigma^2+\tau^2 & \text{if $d=0$} \quad 
+\end{cases}, \quad \text{where $d = ||\vec h||$}.
+$$
+
+## Nugget
+
+We have already introduced nugget before, but in general nugget can be viewed as the pure error independent from linear effect and spatial Gaussian process. We have $\vec\epsilon(\vec s) \sim N(0,\tau^2)$.
 
 
 # Methods
@@ -72,7 +79,13 @@ $$
 \vec Y(\vec s) | \vec\theta \sim MVN \Big( \vec X(\vec s) \vec\beta , \vec\Sigma(\sigma^2,\tau^2,\phi)\Big),
 $$
 
-where $MVN$ denotes multivariate normal. So based on the joint likelihood, we have different approaches:
+where $MVN$ denotes multivariate normal, and the entries of the variance-covariance matrix is given by the covariogram of our choice:
+
+$$
+[\vec\Sigma(\sigma^2,\tau^2,\phi)]_{ij} = \text{Cov}(r(\vec s_i),r(\vec s_j)) = \begin{cases} \sigma^2 \left(1+\frac{\sqrt{3}d}{\phi}\right) \exp\left(-\frac{\sqrt{3}d}{\phi} \right) & \text{if $d>0$}\\ \tau^2+\sigma^2 & \text{if $d=0$} \end{cases},
+$$
+
+where $d=\Vert h \Vert$.So based on the joint likelihood, we have different approaches:
 
 * Bayesian approach: We impose a prior on each parameter: $\vec\theta = ( \vec\beta, \sigma^2,\phi,\tau^2)^\top$, and the posterior is given by
 
@@ -84,6 +97,16 @@ and we can proceed with MCMC methods. My older version invokes [HMC](https://arx
 
 * Frequentist approach: We can impose optimization methods directly on the joint distribution. There are many common methods: Covariance Tapering (which takes advantage of the sparsity structure of the matrix); Fixed rank kriging, and so on.
 [This paper (the same one as above)](https://arxiv.org/abs/1710.05013) includes many interesting methods which we can use, as well.
+
+# Questions Worth Thinking
+
+* As I mentioned before, we have $10$ location-independent covariates. How should we select the best variables? We may want to implement variable selection methods (such as Bayesian Lasso) and run some diagnostics (such as AIC, BIC). 
+
+* In our data, we have multiple observations with identical spatial locations, where they are likely from the same apartment building. To address this issue, one approach is to average those responses values and treat them as one observation. However, we can do this only if the residuals of the linear model we fit are small and have no common pattern among those observations. The other approach is to add a small random noise to those locations so we end up with more data plus unique spatial site. But according to EDA this severely impact the empirical variogram.
+
+*As soon as we get satisfactory linear and spatal model diagnostics, it all goes to the implementation of algorithms.*
+
+* I do need to mention that, the core part of the project should be the implementation/ comparison/ prediction of those algorithms that get the estimates of our parameters. The theory behind spatial modelling is very rich and I can't fully grasp it despite already having spent $1$ semester on that topic as part of my undergrad project.
 
 # Further Reading
 
