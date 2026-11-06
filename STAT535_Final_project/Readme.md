@@ -62,8 +62,9 @@ and using Matérn model, the covariogram becomes
 
 $$
 C(d) = \begin{cases} 
-	\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)}(\phi d)^\nu K_\nu(\phi d) & \text{if $d>0$} \\ \sigma^2+\tau^2 & \text{if $d=0$} \quad 
-\end{cases}, \quad \text{where $d = ||\vec h||$}.
+	\frac{\sigma^2}{2^{\nu-1}\Gamma(\nu)}(\phi d)^\nu K_\nu(\phi d) & \text{if $d>0$} \\
+ \sigma^2+\tau^2 & \text{if $d=0$} \quad 
+\end{cases}.
 $$
 
 ## Nugget
@@ -93,7 +94,7 @@ $$
 p(\vec\theta|\vec y) \propto p(\vec y|\vec\theta) \pi(\vec\beta)\pi(\sigma^2)\pi(\phi)\pi(\tau^2),
 $$
 
-and we can proceed with MCMC methods. My older version invokes [HMC](https://arxiv.org/pdf/1701.02434) (Hamiltonian Monte Carlo), and we can try some other methods. For example: [SPDE-INLA](https://arxiv.org/abs/1604.00860), which uses stochastic partial differential equations (SPDEs); [NNGP](https://arxiv.org/abs/1406.7343) (Nearest Neighbor Gaussian Process); [HSGP](https://arxiv.org/pdf/2004.11408) (Hilbert Space Gaussian Process), which approximate the covariance matrix by eigenfunctions of the negative Laplacian ($-\Delta$), and many other methods. [This paper](https://arxiv.org/abs/1710.05013) has many other interesting methods.
+and we can proceed with MCMC methods. My older version invokes [HMC](https://arxiv.org/pdf/1701.02434) (Hamiltonian Monte Carlo), and we can try some other methods. For example: [SPDE-INLA](https://arxiv.org/abs/1604.00860), which uses stochastic partial differential equations (SPDEs); [NNGP](https://arxiv.org/abs/1406.7343) (Nearest Neighbor Gaussian Process); [HSGP](https://arxiv.org/pdf/2004.11408) (Hilbert Space Gaussian Process), which approximate the covariance matrix by eigenfunctions of the negative Laplacian ($-\Delta$) [This link](https://www.pymc.io/projects/examples/en/latest/gaussian_processes/HSGP-Boundary-Conditions.html?utm_source=chatgpt.com) has the HSGP implementation in python; Variational Inference (suggested by Charles), and many other methods. [This paper](https://arxiv.org/abs/1710.05013) has many other interesting methods.
 
 * Frequentist approach: We can impose optimization methods directly on the joint distribution. There are many common methods: Covariance Tapering (which takes advantage of the sparsity structure of the matrix); Fixed rank kriging, and so on.
 [This paper (the same one as above)](https://arxiv.org/abs/1710.05013) includes many interesting methods which we can use, as well.
@@ -104,7 +105,7 @@ and we can proceed with MCMC methods. My older version invokes [HMC](https://arx
 
 * In our data, we have multiple observations with identical spatial locations, where they are likely from the same apartment building. To address this issue, one approach is to average those responses values and treat them as one observation. However, we can do this only if the residuals of the linear model we fit are small and have no common pattern among those observations. The other approach is to add a small random noise to those locations so we end up with more data plus unique spatial site. But according to EDA this severely impact the empirical variogram.
 
-*As soon as we get satisfactory linear and spatal model diagnostics, it all goes to the implementation of algorithms.*
+*As soon as we get satisfactory linear and spatal model diagnostics, it all goes down to the implementation of algorithms.*
 
 * I do need to mention that, the core part of the project should be the implementation/ comparison/ prediction of those algorithms that get the estimates of our parameters. The theory behind spatial modelling is very rich and I can't fully grasp it despite already having spent $1$ semester on that topic as part of my undergrad project.
 
