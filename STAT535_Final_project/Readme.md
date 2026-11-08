@@ -101,6 +101,8 @@ and we can proceed with MCMC methods. My older version invokes [HMC](https://arx
 
 # Questions Worth Thinking
 
+* If we have time, we can first simulate some spatil data and fit those models on simulated data first, so we have two comparisons, and we can see if those methods work well in both theory and practice.
+
 * As I mentioned before, we have $10$ location-independent covariates. How should we select the best variables? We may want to implement variable selection methods (such as Bayesian Lasso) and run some diagnostics (such as AIC, BIC). 
 
 * In our data, we have multiple observations with identical spatial locations, where they are likely from the same apartment building. To address this issue, one approach is to average those responses values and treat them as one observation. However, we can do this only if the residuals of the linear model we fit are small and have no common pattern among those observations. The other approach is to add a small random noise to those locations so we end up with more data plus unique spatial site. But according to EDA this severely impact the empirical variogram.
