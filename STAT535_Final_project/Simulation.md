@@ -122,7 +122,7 @@ ggplot(sim_df, aes(x = x, y = y, color = value)) +
 
 <figure style="width: 600px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
-    src="figures/simulated_data_plot.png" 
+    src="/figures/simulated_data_plot.png" 
     alt="" 
     style="width: 600px; height: 400px"
   >
