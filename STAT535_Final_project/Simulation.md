@@ -26,8 +26,8 @@ The following code will simulate spatial data on a $100\times 100$ grid, where c
 set.seed(123)
 
 grid <- list(
-  x = seq(0, 1, length.out = 100),
-  y = seq(0, 1, length.out = 100)
+  x = seq(0, 4, length.out = 100),
+  y = seq(0, 4, length.out = 100)
 )
 
 # covariance matrix following the Matern covariogram
@@ -120,15 +120,22 @@ ggplot(sim_df, aes(x = x, y = y, color = value)) +
 
   Whereas the result is given as follow:
 
-<figure style="width: 280px; max-width: 100%; margin: 1.5em auto; text-align: center;">
+<figure style="width: 600px; max-width: 100%; margin: 1.5em auto; text-align: center;">
   <img 
-    src="/figures/simulated_data_plot.PNG" 
+    src="figures/simulated_data_plot.png" 
     alt="" 
-    style="width: 400px; height: 400px; object-fit: cover; border-radius: 50%;"
+    style="width: 600px; height: 400px"
   >
   <figcaption style="font-size: 0.95em; margin-top: 0.5em;">
     <em></em>
   </figcaption>
 </figure>
+
+
+
+
+
+
+
 
 
