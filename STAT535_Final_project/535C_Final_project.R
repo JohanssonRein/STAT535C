@@ -7,7 +7,7 @@ library(rjags)
 library(coda)
 library(fields)
 library(spdep)
-
+library(stringr)
 
 ##Part I: Loading data and data cleaning
 
@@ -17,9 +17,9 @@ rental <- read_csv("rentfaster.csv")
 #By running nrow(rental) and ncol(rental),
 #the data has 25771 rows (observations) and 18 columns (covariates)
 
-#We restrict to observations in Alberta. This creates 13777 observations
+#We restrict to observations in Calgary, Alberta. This creates 9836 observations
 rental_AB <- rental %>%
-  filter(province == "Alberta")
+  filter(province == "Alberta", city == "Calgary")
 
 # Data cleaning processes:
 
@@ -28,17 +28,25 @@ rent_AB <- rental_AB %>%
   # number of bedrooms, as well as square feet numeric, by using parse_number function 
   mutate(
     
-    beds = case_when(
-      grepl("studio", beds, ignore.case = TRUE) ~ 0,
-      TRUE ~ parse_number(beds)
+    beds = if_else(
+      grepl("Studio|none", beds, ignore.case = TRUE),
+      "0",
+      as.character(beds)
     ),
+    beds = parse_number(beds),
+    
     
     #Here we decode whether pets are allowed as a binary variable
     cats_allowed = as.integer(cats),
     dogs_allowed = as.integer(dogs),
     pets_allowed = as.integer(cats | dogs),
     
-    sq_feet = parse_number(sq_feet),
+    sq_feet = as.numeric(
+      stringr::str_extract(
+        gsub(",","", as.character(sq_feet)),
+        "[0-9]+\\.?[0-9]*"
+      )
+    ),
     
     #We divide the property into the following main types:
     property_type = case_when(
@@ -67,10 +75,6 @@ rent_AB <- rental_AB %>%
     !is.na(price),
     price > 200,
     price < 10000,
-    !is.na(sq_feet),
-    !is.na(longitude),
-    !is.na(latitude),
-    sq_feet > 250,
     beds <= 6,
     !type %in% c("Office Space", "Parking Spot", "Storage"),
     is.finite(latitude),
@@ -81,12 +85,12 @@ rent_AB <- rental_AB %>%
     latitude <= 53.8
   )
 
-#Finally, the cleaned data has 10510 observations (Calgary-Edmonton area)
+#Finally, the cleaned data has 9657 observations (Calgary, AB)
 
 
 
 
-#Since prices are positive, we work with log-price
+#Since prices are positive, we work with log-price (maybe it is worth to examine using price instead of log-price)
 rent_AB <- rent_AB %>% mutate(log_price = log(price))
 
 ## Part 2 Regression model
@@ -104,8 +108,8 @@ train <- sample(
   size = floor(0.8 * nrow(rent_AB))
 )
 
-rent_AB_train <- rent_AB[train, ]
-rent_AB_test  <- rent_AB[-train, ]
+rent_AB_train <- rent_AB[train, ] # Training set has 7725 observations
+rent_AB_test  <- rent_AB[-train, ] # Testing set has 1932 observations
 
 rent_AB_lm <- lm(
   log_price ~ beds + baths + pets_allowed + property_type,
@@ -116,6 +120,27 @@ rent_AB_lm <- lm(
 summary(rent_AB)
 summary(rent_AB_train)
 summary(rent_AB_lm)
+
+
+# Residuals
+rent_AB_train <- rent_AB_train %>%
+  mutate(
+    fitted_log_price = as.numeric(
+      predict(rent_AB_lm, newdata = rent_AB_train)
+    ),
+    resid_lm = log_price - fitted_log_price
+  )
+
+# Test-set predictions from the baseline regression
+rent_AB_test <- rent_AB_test %>%
+  mutate(
+    predicted_log_price = as.numeric(
+      predict(rent_AB_lm, newdata = rent_AB_test)
+    ),
+    predicted_residual = log_price - predicted_log_price
+  )
+
+
 
 fitted_log_price <- predict(rent_AB_lm, newdata = rent_AB_train)
 residuals <- rent_AB_train$log_price - fitted_log_price
@@ -142,72 +167,89 @@ plot(
 )
 abline(h=0, col = "red", lwd = 2)
 
+# Run our model for the testing set and check residuals
 
-## Part III: Modeling spatial dependency
+predicted_log_price <- predict(rent_AB_lm, newdata = rent_AB_test)
 
-resid1 <- residuals(rent_AB_lm)
+predicted_residual <- rent_AB_test$log_price - predicted_log_price
 
-lm_trend <- lm(
-  resid1 ~ longitude + latitude +
-    I(longitude^2) + I(latitude^2) + I(longitude * latitude),
-  data = rent_AB_train 
+plot(
+  predicted_log_price, rent_AB_test$log_price,
+  xlab = "Predicted log price",
+  ylab = "Actual log-price",
+  main = "",
+  pch = 16,
+  cex = 0.6
 )
+abline(0, 1, col = "red", lwd=2)
 
-summary(lm_trend)
 
-#Since multiple listings may have the exact spatial coordinate (coming from the same unit),
-# we add a random noise to those duplicates so the spatial coordinates are unique.
+plot(
+  predicted_log_price, predicted_residual,
+  xlab = "Precidted log-price",
+  ylab = "Residuals on testing set",
+  main = "",
+  pch = 16,
+  cex = 0.6
+)
+abline(h=0, col = "red", lwd = 2)
 
-rent_AB_train$resid1 <- residuals(rent_AB_lm)
 
-rent_spatial <- rent_AB_train %>%
-  mutate(
-    resid_spatial = resid1
-  ) %>%
+# We want to see if our linear model works well when spatial dependency is removed. 
+
+#nrow(rent_AB) = 9657
+
+# We start by grouping the observations with the same spatial location (they are likely from the same apartment building)
+
+
+rent_AB_uni <- rent_AB_train %>%
   filter(
     is.finite(longitude),
     is.finite(latitude),
-    is.finite(resid_spatial)
+    is.finite(resid_lm)
   ) %>%
   group_by(longitude, latitude) %>%
-  mutate(
-    n_at_site = n(),
-    duplicate_site = n_at_site > 1
-  ) %>%
-  ungroup() %>%
-  mutate(
-    lon_jitter = longitude,
-    lat_jitter = latitude
+  summarise(
+    n_site = n(),
+    mean_residual = mean(resid_lm),
+    .groups = "drop"
   )
 
-# Add random noise only to duplicate sites, so we have 8408 observations with unique spatial coordinates
-set.seed(123)
-idx <- which(rent_spatial$duplicate_site)
-
-rent_spatial$lon_jitter[idx] <-
-  rent_spatial$longitude[idx] +
-  runif(length(idx), -1e-6, 1e-6)
-
-rent_spatial$lat_jitter[idx] <-
-  rent_spatial$latitude[idx] +
-  runif(length(idx), -1e-6, 1e-6)
-
-#Using GeoR package to get some illustrations of our data
-AB_geo <- as.geodata(
-  rent_spatial,
-  coords.col = c("lon_jitter", "lat_jitter"),
-  data.col = "resid_spatial"
+cat(
+  "Training observations with valid residuals:",
+  sum(is.finite(rent_AB_train$resid_lm)), # 7721 training observations with valid residual
+  "\n"
 )
 
-summary(AB_geo)
-plot(AB_geo) 
+cat(
+  "Unique training locations:",
+  nrow(rent_AB_uni), #3125 Unique training locations
+  "\n"
+)
 
-# variogram
-#vario_cloud <- variog(AB_geo, option = "cloud")
-#plot(vario_cloud)
+#Create GeoR data type
+geo_cal <- geoR::as.geodata(
+  rent_AB_uni,
+  coords.col = c("longitude", "latitude"),
+  data.col = "mean_residual"
+)
 
-vario <- variog(AB_geo, uvec = seq(0, 0.2, by = 0.01))
+summary(geo_cal)
+
+vario_cal <- variog(
+  geo_cal,
+  uvec = seq(0,0.2, by = 0.01),
+  estimator.type = "classical"
+)
+
+plot(vario_cal)
+
+
+
+vario <- variog(geo_cal, uvec = seq(0, 0.15, by = 0.01))
 plot(vario)
+
+
 
 
 
