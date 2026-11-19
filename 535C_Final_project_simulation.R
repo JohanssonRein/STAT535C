@@ -32,7 +32,7 @@ cov_obj <- fields::circulantEmbeddingSetup(
   cov.args = list(
     Covariance = "Matern",
     aRange = 0.2,
-    smoothness = 1
+    smoothness = 1.0
   )
 )
 
