@@ -12,7 +12,7 @@ library(stringr)
 ##Part I: Loading data and data cleaning
 
 #Read the data， the data is also available on my Github: https://github.com/JohanssonRein/STAT535C/blob/main/rentfaster.csv
-rental <- read_csv("rentfaster.csv")
+rental <- read_csv("rentfaster.csv", na = c("", "NA", "none"))
 
 #By running nrow(rental) and ncol(rental),
 #the data has 25771 rows (observations) and 18 columns (covariates)
@@ -35,6 +35,7 @@ rent_AB <- rental_AB %>%
     ),
     beds = parse_number(beds),
     
+    baths = case_match(baths, NA ~ 0, .default = baths),
     
     #Here we decode whether pets are allowed as a binary variable
     cats_allowed = as.integer(cats),
@@ -56,6 +57,12 @@ rent_AB <- rental_AB %>%
       type == "Room For Rent" ~ "Room For Rent",
       TRUE ~ "Others"
     ),
+    
+    #Encoding property types as indicators for modelling.
+    i_Apartment = (property_type == "Apartment"),
+    i_House = (property_type == "House"),
+    i_Basement = (property_type == "Basement"),
+    i_Room = (property_type == "Room For Rent"),
     
     property_type = factor(
         property_type,
