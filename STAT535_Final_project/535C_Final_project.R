@@ -1,13 +1,10 @@
-library(readr)
-library(dplyr)
-library(ggplot2)
 library(geoR)
 library(MASS)
 library(rjags)
 library(coda)
 library(fields)
 library(spdep)
-library(stringr)
+library(tidyverse)
 
 ##Part I: Loading data and data cleaning
 
@@ -38,9 +35,9 @@ rent_AB <- rental_AB %>%
     baths = case_match(baths, NA ~ 0, .default = baths),
     
     #Here we decode whether pets are allowed as a binary variable
-    cats_allowed = as.integer(cats),
-    dogs_allowed = as.integer(dogs),
-    pets_allowed = as.integer(cats | dogs),
+    i_cats_allowed = as.integer(cats),
+    i_dogs_allowed = as.integer(dogs),
+    i_pets_allowed = as.integer(cats | dogs),
     
     sq_feet = as.numeric(
       stringr::str_extract(
@@ -59,10 +56,10 @@ rent_AB <- rental_AB %>%
     ),
     
     #Encoding property types as indicators for modelling.
-    i_Apartment = (property_type == "Apartment"),
-    i_House = (property_type == "House"),
-    i_Basement = (property_type == "Basement"),
-    i_Room = (property_type == "Room For Rent"),
+    i_Apartment = as.integer(property_type == "Apartment"),
+    i_House = as.integer(property_type == "House"),
+    i_Basement = as.integer(property_type == "Basement"),
+    i_Room = as.integer(property_type == "Room For Rent"),
     
     property_type = factor(
         property_type,
@@ -119,7 +116,7 @@ rent_AB_train <- rent_AB[train, ] # Training set has 7725 observations
 rent_AB_test  <- rent_AB[-train, ] # Testing set has 1932 observations
 
 rent_AB_lm <- lm(
-  log_price ~ beds + baths + pets_allowed + property_type,
+  log_price ~ beds + baths + i_pets_allowed + property_type,
   data = rent_AB_train,
   na.action = na.exclude
 )
